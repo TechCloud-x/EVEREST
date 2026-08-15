@@ -1,33 +1,43 @@
+<a id="top"></a>
+
 <div align="center">
   <img src="assets/everest-banner.png" alt="EVEREST project banner" width="100%">
+  <h1>EVEREST</h1>
+  <p><strong>Endogenous Vision-Language Reinforcement Reasoning Exploration for Urban Socio-Semantic Segmentation</strong></p>
 </div>
-
-# EVEREST
-
-**Endogenous Vision-Language Reinforcement Reasoning Exploration for Urban Socio-Semantic Segmentation**
 
 EVEREST recovers the pixel-level extent of socially defined urban entities from a digital map, a spatially aligned satellite image, and a textual target. It actively enumerates candidate instances, renders coarse segmentation feedback, verifies instance boundaries, and produces executable box-and-point prompts for a frozen SAM2 segmenter.
 
-## Contents
+<a id="table-of-contents"></a>
 
-- [Overview](#overview)
-- [Key Features](#key-features)
-- [Architecture](#architecture)
-- [Results](#results)
-- [Installation](#installation)
-- [Data Preparation](#data-preparation)
-- [Training](#training)
-- [Inference](#inference)
-- [Configuration](#configuration)
-- [Project Structure](#project-structure)
+## 📑 Table of Contents
 
-## Overview
+- [📌 Introduction](#introduction)
+- [✨ Key Features](#key-features)
+- [🏗️ Architecture](#architecture)
+- [📊 Results](#results)
+- [📦 Installation](#installation)
+- [📂 Data Preparation](#data-preparation)
+- [🚀 Training](#training)
+- [🔍 Inference](#inference)
+- [⚙️ Configuration](#configuration)
+- [📁 Project Structure](#project-structure)
+
+[⬆ Back to top](#top)
+
+<a id="introduction"></a>
+
+## 📌 Introduction
 
 Appearance alone is often insufficient to distinguish socially defined regions such as schools, hospitals, parks, residential areas, and commercial districts. EVEREST treats this task as an interactive multimodal reasoning problem rather than a one-shot mask prediction problem.
 
 The shared vision-language policy first enumerates candidate entities with stable instance identities and bounding boxes. A frozen SAM2 model converts those boxes into a coarse mask, which is rendered back onto the aligned map and satellite image. The policy then verifies every indexed instance, chooses whether to keep, adjust, or drop it, and places positive boundary-refinement points. Because text generation, parsing, rendering, and segmentation are non-differentiable, the shared policy is optimized with group-relative reinforcement learning.
 
-## Key Features
+[⬆ Back to top](#top)
+
+<a id="key-features"></a>
+
+## ✨ Key Features
 
 - **Pseudocode-guided enumeration** discovers candidate entities and anchors each one with a stable instance identity.
 - **Egocentric verification** uses rendered map-satellite feedback to inspect boundaries and perform keep, adjust, or drop decisions.
@@ -35,35 +45,33 @@ The shared vision-language policy first enumerates candidate entities with stabl
 - **Reinforcement reasoning optimization** trains the VLM across a non-differentiable parsing, rendering, and segmentation workflow.
 - **Hierarchical urban semantics** supports Socio-name, Socio-class, and Socio-function targets.
 
-## Architecture
+[⬆ Back to top](#top)
+
+<a id="architecture"></a>
+
+## 🏗️ Architecture
 
 <div align="center">
   <img src="assets/architecture.png" alt="EVEREST architecture" width="100%">
 </div>
 
-The two coupled stages are:
+[⬆ Back to top](#top)
 
-1. **Enumerate:** <code>SCAN_GRID -> ANCHOR_WITH_BOX -> DEDUPLICATE -> COUNT_CONFIRM</code>.
-2. **Verify:** <code>INSPECT -> DECIDE -> PLACE_POINT -> VERIFY_COUNT</code>.
+<a id="results"></a>
 
-Stable instance identities connect the two stages, allowing the verification stage to refine an existing candidate set instead of generating an unrelated prediction.
+## 📊 Results
 
-## Results
+<div align="center">
+  <img src="assets/results.png" alt="Comparison with state-of-the-art methods on the SocioSeg test set" width="100%">
+</div>
 
-The manuscript reports the following SocioSeg results:
+[⬆ Back to top](#top)
 
-| Task | cIoU | F1 |
-| --- | ---: | ---: |
-| Socio-name | 53.0 | 64.3 |
-| Socio-class | 50.5 | 61.5 |
-| Socio-function | 44.4 | 54.9 |
-| **Overall** | **50.4** | **61.4** |
+<a id="installation"></a>
 
-EVEREST obtains the best average rank and the highest overall cIoU and F1 among the evaluated methods. The released configuration uses a Qwen2.5-VL-3B backbone, frozen SAM2, rollout batch size 128, group size 8, learning rate <code>1e-6</code>, clipping coefficient <code>0.5</code>, and KL weight <code>0.005</code>.
+## 📦 Installation
 
-## Installation
-
-### Requirements
+### 🧰 Requirements
 
 - Linux with CUDA
 - Python 3.10
@@ -82,7 +90,11 @@ pip install "transformer-engine[pytorch]==2.2.0" deepspeed==0.16.4 vllm==0.8.4 -
 
 The launchers add the repository root to <code>PYTHONPATH</code>; an editable package installation is not required.
 
-## Data Preparation
+[⬆ Back to top](#top)
+
+<a id="data-preparation"></a>
+
+## 📂 Data Preparation
 
 The dataset and model checkpoints are intentionally not included. Set <code>EVEREST_DATASET</code> to the SocioSeg root with the following layout:
 
@@ -121,7 +133,11 @@ export EVEREST_HF_HOME=/absolute/path/to/huggingface-cache
 export EVEREST_RAY_TMPDIR=/absolute/path/to/ray-temp
 ~~~
 
-## Training
+[⬆ Back to top](#top)
+
+<a id="training"></a>
+
+## 🚀 Training
 
 The canonical training configuration starts from <code>Qwen/Qwen2.5-VL-3B-Instruct</code>.
 
@@ -138,7 +154,11 @@ sbatch --gpus=4 --export=ALL,EVEREST_DATASET=/absolute/path/to/SocioSeg examples
 
 A timestamped runtime configuration is created under <code>examples/train/</code>. Checkpoints and logs are written below <code>examples/output/train/&lt;MM_DD_HH_MM&gt;/</code>.
 
-## Inference
+[⬆ Back to top](#top)
+
+<a id="inference"></a>
+
+## 🔍 Inference
 
 Point <code>EVEREST_CHECKPOINT</code> to a trained checkpoint. The path may contain the training timestamp; otherwise a sanitized checkpoint name is used for the inference run directory.
 
@@ -150,7 +170,11 @@ bash examples/infer.sh
 
 Inference artifacts are written below <code>examples/output/infer/infer_&lt;run-id&gt;/result/</code>, including stage-one masks, stage-two masks, rendered feedback, model responses, and aggregate metrics.
 
-## Configuration
+[⬆ Back to top](#top)
+
+<a id="configuration"></a>
+
+## ⚙️ Configuration
 
 The canonical files are:
 
@@ -168,13 +192,18 @@ The default models are:
 - Vision-language backbone: <code>Qwen/Qwen2.5-VL-3B-Instruct</code>
 - Promptable segmenter: <code>facebook/sam2-hiera-large</code>
 
-## Project Structure
+[⬆ Back to top](#top)
+
+<a id="project-structure"></a>
+
+## 📁 Project Structure
 
 ~~~text
 EVEREST/
 |-- assets/
 |   |-- architecture.png
-|   `-- everest-banner.png
+|   |-- everest-banner.png
+|   `-- results.png
 |-- examples/
 |   |-- config/
 |   |-- infer/
@@ -190,4 +219,4 @@ EVEREST/
 `-- README.md
 ~~~
 
-Only training, inference, their runtime dependencies, and README assets are included. Datasets, checkpoints, experiment outputs, manuscript sources, tests, temporary files, and environment-specific launch variants are excluded.
+[⬆ Back to top](#top)
