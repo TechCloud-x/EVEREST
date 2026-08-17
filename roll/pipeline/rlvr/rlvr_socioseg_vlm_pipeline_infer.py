@@ -65,104 +65,6 @@ def compute_iou(pred_mask: np.ndarray, gt_mask: np.ndarray) -> float:
     return float(intersection / union)
 
 
-def _mask_bbox(mask: np.ndarray):
-    """Returns (x1, y1, x2, y2) of the smallest axis-aligned bbox enclosing
-    all nonzero pixels of the mask, or None if the mask is empty."""
-    ys, xs = np.where(mask > 0)
-    if ys.size == 0:
-        return None
-    return int(xs.min()), int(ys.min()), int(xs.max()) + 1, int(ys.max()) + 1
-
-
-def compute_giou(pred_mask: np.ndarray, gt_mask: np.ndarray) -> float:
-    """Computes Generalized IoU for binary masks.
-
-    gIoU = IoU - (|C| - |A ∪ B|) / |C|
-    where C is the smallest axis-aligned bbox enclosing A ∪ B.
-    Range: [-1, 1].
-    """
-    pred_mask_bool = pred_mask > 0
-    gt_mask_bool = gt_mask > 0
-
-    pred_area = pred_mask_bool.sum()
-    gt_area = gt_mask_bool.sum()
-
-    if pred_area == 0 and gt_area == 0:
-        return 1.0
-
-    intersection = np.logical_and(pred_mask_bool, gt_mask_bool).sum()
-    union_mask = np.logical_or(pred_mask_bool, gt_mask_bool)
-    union = union_mask.sum()
-
-    iou = intersection / union if union > 0 else 0.0
-
-    ys, xs = np.where(union_mask)
-    if ys.size == 0:
-        return float(iou)
-    x1, y1 = int(xs.min()), int(ys.min())
-    x2, y2 = int(xs.max()) + 1, int(ys.max()) + 1
-    c_area = (x2 - x1) * (y2 - y1)
-
-    if c_area == 0:
-        return float(iou)
-
-    return float(iou - (c_area - union) / c_area)
-
-
-def compute_ciou(pred_mask: np.ndarray, gt_mask: np.ndarray) -> float:
-    """Computes Complete IoU on the enclosing bboxes of the two masks.
-
-    cIoU = IoU_bbox - ρ²(center_pred, center_gt)/c² - α·v
-    where c is the diagonal of the smallest enclosing bbox, v measures
-    aspect-ratio consistency, and α is the trade-off weight.
-    Range: [-1, 1].
-    """
-    pred_bbox = _mask_bbox(pred_mask)
-    gt_bbox = _mask_bbox(gt_mask)
-
-    if pred_bbox is None and gt_bbox is None:
-        return 1.0
-    if pred_bbox is None or gt_bbox is None:
-        return -1.0
-
-    px1, py1, px2, py2 = pred_bbox
-    gx1, gy1, gx2, gy2 = gt_bbox
-
-
-    ix1, iy1 = max(px1, gx1), max(py1, gy1)
-    ix2, iy2 = min(px2, gx2), min(py2, gy2)
-    iw, ih = max(0, ix2 - ix1), max(0, iy2 - iy1)
-    inter_area = iw * ih
-    p_area = (px2 - px1) * (py2 - py1)
-    g_area = (gx2 - gx1) * (gy2 - gy1)
-    union_area = p_area + g_area - inter_area
-    iou_bbox = inter_area / union_area if union_area > 0 else 0.0
-
-
-    cx1, cy1 = min(px1, gx1), min(py1, gy1)
-    cx2, cy2 = max(px2, gx2), max(py2, gy2)
-    c_diag_sq = (cx2 - cx1) ** 2 + (cy2 - cy1) ** 2
-    if c_diag_sq == 0:
-        return float(iou_bbox)
-
-
-    p_cx, p_cy = (px1 + px2) / 2, (py1 + py2) / 2
-    g_cx, g_cy = (gx1 + gx2) / 2, (gy1 + gy2) / 2
-    center_dist_sq = (p_cx - g_cx) ** 2 + (p_cy - g_cy) ** 2
-
-
-    pw, ph = px2 - px1, py2 - py1
-    gw, gh = gx2 - gx1, gy2 - gy1
-    if pw > 0 and ph > 0 and gw > 0 and gh > 0:
-        v = (4.0 / (np.pi ** 2)) * (np.arctan(gw / gh) - np.arctan(pw / ph)) ** 2
-        denom = (1.0 - iou_bbox) + v
-        alpha = v / denom if denom > 0 else 0.0
-    else:
-        v, alpha = 0.0, 0.0
-
-    return float(iou_bbox - center_dist_sq / c_diag_sq - alpha * v)
-
-
 def compute_f1(pred_mask: np.ndarray, gt_mask: np.ndarray) -> float:
     """Computes pixel-level F1 score for binary segmentation masks. Range: [0, 1]."""
     pred_mask_bool = pred_mask > 0
@@ -1198,7 +1100,7 @@ class SocioSegInferPipeline(BasePipeline):
         seg_infer_timer = _Timer(window_size=5)
         actor_train_timer = _Timer(window_size=5)
 
-        _METRIC_NAMES = ("iou", "ciou", "giou", "f1")
+        _METRIC_NAMES = ("ciou", "f1")
         _CATEGORIES = ("name", "class", "function")
         all_metrics = {k: [] for k in _METRIC_NAMES}
         cat_metrics = {c: {k: [] for k in _METRIC_NAMES} for c in _CATEGORIES}
@@ -1442,9 +1344,7 @@ class SocioSegInferPipeline(BasePipeline):
                     pred_mask = batch[i].non_tensor_batch["sat_mask"]
 
                     sample_scores = {
-                        "iou": compute_iou(pred_mask, gt_mask),
-                        "ciou": compute_ciou(pred_mask, gt_mask),
-                        "giou": compute_giou(pred_mask, gt_mask),
+                        "ciou": compute_iou(pred_mask, gt_mask),
                         "f1": compute_f1(pred_mask, gt_mask),
                     }
                     for k in _METRIC_NAMES:
@@ -1491,7 +1391,7 @@ class SocioSegInferPipeline(BasePipeline):
         os.makedirs(result_dir, exist_ok=True)
 
         def _write_result(path, md):
-            n = len(md["iou"])
+            n = len(md["ciou"])
             with open(path, "w") as f:
                 for k in _METRIC_NAMES:
                     mean_v = float(np.mean(md[k])) if md[k] else 0.0
@@ -1508,9 +1408,9 @@ class SocioSegInferPipeline(BasePipeline):
         )
         for c in _CATEGORIES:
             md = cat_metrics[c]
-            if md["iou"]:
+            if md["ciou"]:
                 print(
-                    f"[{c}] n={len(md['iou'])}, "
+                    f"[{c}] n={len(md['ciou'])}, "
                     + ", ".join(f"{k}={np.mean(md[k]):.4f}" for k in _METRIC_NAMES)
                 )
             else:
