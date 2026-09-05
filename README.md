@@ -12,6 +12,7 @@ EVEREST recovers the pixel-level extent of socially defined urban entities from 
 
 ## 📑 Table of Contents
 
+- [📰 News](#news)
 - [📌 Introduction](#introduction)
 - [✨ Key Features](#key-features)
 - [🏗️ Architecture](#architecture)
@@ -22,6 +23,15 @@ EVEREST recovers the pixel-level extent of socially defined urban entities from 
 - [🔍 Inference](#inference)
 - [⚙️ Configuration](#configuration)
 - [📁 Project Structure](#project-structure)
+- [📝 Citation](#citation)
+
+[⬆ Back to top](#top)
+
+<a id="news"></a>
+
+## 📰 News
+
+- **2026-08-25:** Our paper, **EVEREST: Endogenous Vision-Language Reinforcement Reasoning Exploration for Urban Socio-Semantic Segmentation**, is available on [arXiv](https://arxiv.org/abs/2608.24640).
 
 [⬆ Back to top](#top)
 
@@ -217,6 +227,23 @@ EVEREST/
 |-- roll/
 |-- requirements.txt
 `-- README.md
+~~~
+
+[⬆ Back to top](#top)
+
+<a id="citation"></a>
+
+## 📝 Citation
+
+If you find this work useful, please cite:
+
+~~~bibtex
+@article{li2026everest,
+  title={EVEREST: Endogenous Vision-Language Reinforcement Reasoning Exploration for Urban Socio-Semantic Segmentation},
+  author={Li, Qixiu and He, Zhongzhi and Zhu, Xiang and Li, Xiaoyong and Lin, Jiarun and Xu, Weifeng},
+  journal={arXiv preprint arXiv:2608.24640},
+  year={2026}
+}
 ~~~
 
 [⬆ Back to top](#top)
